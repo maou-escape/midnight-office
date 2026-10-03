@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<title>Midnight Office</title>
+<meta name="description" content="자정의 회사에 갇힌 1인용 방탈출 웹게임. Episode 1 야근 · Episode 2 인수인계.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- 타이틀 -->
+<section id="title" class="screen">
+  <div class="title-inner">
+    <p class="title-kicker">ALL ORIGINALS VERIFIED</p>
+    <h1>Midnight<br>Office</h1>
+    <p class="title-sub">자정의 회사에서, 기록만 믿고 퇴근하기</p>
+    <div id="chapterList" class="chapter-list"></div>
+    <p class="title-foot">1인용 방탈출 · 자동 저장 · 막마다 30~50분</p>
+  </div>
+</section>
+
+<!-- 게임 -->
+<section id="game" class="screen hidden">
+  <header class="topbar">
+    <button class="icon-btn" id="btnMenu" title="챕터 선택">☰</button>
+    <div class="where">
+      <span id="chapterName" class="chapter-name"></span>
+      <b id="roomName" class="room-name"></b>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="btnHint" title="힌트">?</button>
+      <button class="icon-btn" id="btnNote" title="수사 수첩">✎</button>
+      <button class="icon-btn" id="btnMarks" title="조사 지점 표시">◎</button>
+      <button class="icon-btn" id="btnBgm" title="배경음악">♪</button>
+    </div>
+  </header>
+  <div class="objective" id="objective"><span>현재 목표</span><b id="objectiveText"></b></div>
+  <main class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="art" id="art"></div>
+      <div class="spots" id="spots"></div>
+    </div>
+    <div class="room-nav" id="roomNav"></div>
+    <p class="rotate-tip">휴대폰을 가로로 돌리면 방이 더 크게 보입니다.</p>
+  </main>
+  <footer class="inventory">
+    <div class="inv-head"><span>소지품 · 증거</span><small id="selectedHint"></small></div>
+    <div class="inv-list" id="inventory"></div>
+  </footer>
+</section>
+
+<!-- 모달 -->
+<div class="modal hidden" id="modal" role="dialog" aria-modal="true">
+  <div class="modal-card" id="modalCard">
+    <button class="modal-close" id="modalClose" aria-label="닫기">✕</button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="js/art.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/puzzles.js"></script>
+<script src="js/chapters/e1a1.js"></script>
+<script src="js/chapters/e1a2.js"></script>
+<script src="js/chapters/e1a3.js"></script>
+<script src="js/chapters/e1a4.js"></script>
+<script src="js/chapters/e1a5.js"></script>
+<script src="js/chapters/e2a1.js"></script>
+<script src="js/chapters/e2a2.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>
