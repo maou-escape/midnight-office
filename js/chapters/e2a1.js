@@ -1,16 +1,13 @@
-/* Episode 2 · Act 1 첨부 파일 — 06:07 회사 건너편 24시간 카페 */
-MO.chapter({
-  id: 'e2a1', ep: 2, act: 1,
-  epTitle: 'Episode 2. 인수인계', title: 'Act 1. 첨부 파일',
-  kicker: '06:07 · 24시간 카페 창가 7번', tagline: '열리지 않는 Episode_2.xlsx',
+/* 장면 6 · 06:07 건너편 24시간 카페 — 첨부 파일 */
+MO.part({
+  id: 'e2a1', ep: 2, time: '06:07', place: '건너편 24시간 카페', title: '첨부 파일',
   bgm: 'assets/audio/ep2-act1.mp3',
-  premise: '모르는 번호가 보낸 Episode_2.xlsx는 열리지 않는다. 테이블 위에는 번호 카드, 봉인된 봉투, 출처를 알 수 없는 열쇠가 놓여 있다. 이번 사건에 필요한 정보는 모두 이 테이블 안에 있다.',
   intro: `
-    <p>오전 6시 7분. 회사 건너편 24시간 카페.</p>
-    <p>지난밤 나는 회사 기록의 작성자와 시각을 몰래 바꾸는 시스템 <b>MIRROR</b>를 밝혀냈다. 누명을 썼던 전 조사관 윤서진의 기록은 되찾았지만, 시스템을 만든 사람과 조작된 사건의 수는 아직 모른다.</p>
-    <p>그때 모르는 번호가 파일 하나를 보냈다. <b class="mono">Episode_2.xlsx</b>. 첨부 파일은 열리지 않는다. 휴대전화 카메라로 테이블을 비추자 몇 군데에 붉은 번호가 떠오른다.</p>
+    <p>오전 6시 7분. 회사 건너편 24시간 카페, 창가 7번 테이블.</p>
+    <p>원본은 회사 밖 두 곳에 남았다. 하지만 시스템을 만든 사람과 조작된 사건이 몇 개인지는 아직 모른다. 그리고 왜 하필 내 번호였는지도.</p>
+    <p>방금 도착한 <b class="mono">Episode_2.xlsx</b>는 열리지 않는다. 테이블에는 아무도 없다. 휴대전화 카메라를 비추자 몇 군데에 붉은 번호가 떠오른다. 첫 봉투 겉면에 손글씨가 있다.</p>
     <blockquote>“앞 사건의 답을 묻지 않습니다. 이 테이블에 남긴 것만으로 나를 찾으세요.”</blockquote>
-    <p class="note">Episode 1을 하지 않아도 진행할 수 있습니다. 소지품 두 개를 차례로 누르면(하나를 “들고 쓰기” 한 뒤 다른 하나를 누르면) 조합할 수 있습니다.</p>`,
+    <p class="note">소지품 두 개를 조합하려면 하나를 “들고 쓰기”로 든 뒤 다른 하나를 누르세요.</p>`,
   start: 'table',
   startItems: ['phone'],
 
@@ -28,7 +25,7 @@ MO.chapter({
     card42: { name: '#42 자석 봉인', icon: '🧲', desc: '<p>A→B→C 봉인을 통과해 봉투 2를 연 황동 자석.</p>' },
     card114: { name: '#114 최유리의 기록 띠', icon: '🎗️', desc: '<p>RM-CYR-114. 네 조각의 종이와 열쇠 순서를 잇는 색인 띠.</p>' },
     card62: { name: '#62 책임 저울 봉인', icon: '⚖️', desc: '<p>원본 기록과 덮어쓴 기록을 나눠 균형을 맞춘 봉인 추.</p>' },
-    'E-01': { ev: true, code: 'E-01', name: '생성 시점', short: '2018.11.03 생성', desc: '<p>파일 속성: 생성 <b class="mono">2018.11.03</b>. 표시된 작성자(나)의 입사보다 1년 빠르다.</p>' },
+    'E-01': { ev: true, code: 'E-01', name: '생성 시점', short: '2018.11.03 생성', desc: '<p>파일 속성: 생성 <b class="mono">2018.11.03</b>. 성운물류센터 화재 당일이며, 표시된 작성자(나)의 입사일 2019.04.26보다 반년 빠르다.</p>' },
     'E-02': { ev: true, code: 'E-02', name: '표시 작성자', short: '작성자 19-0426-071', desc: '<p>현재 작성자 표시는 <b class="mono">19-0426-071</b>. 내 사원번호다.</p>' },
     'E-03': { ev: true, code: 'E-03', name: '원본 꼬리표', short: '삭제 흔적 아래 RM-CYR-114', desc: '<p>삭제 흔적 아래에 <b class="mono">RM-CYR-114</b>가 남아 있다.</p>' },
     'E-04': { ev: true, code: 'E-04', name: '인사 색인', short: 'CYR-114 = 최유리', desc: '<p>인사 색인: <b class="mono">CYR-114</b>는 기록관리 담당자 최유리의 식별자다.</p>' },
@@ -134,7 +131,7 @@ MO.chapter({
     },
     accuse: {
       type: 'accuse', wide: true, loc: '추리 상자', title: '사라진 작성자',
-      prompt: '<div class="cards4"><div class="pcard"><em>19 · 감사팀 · 2019년 입사</em><b>나</b><small>“내 번호지만, 이 파일이 만들어질 때 나는 이 회사에 없었다.”</small></div><div class="pcard"><em>K · MIRROR 개발 책임자</em><b>K</b><small>“기록관리 접두어 RM은 개발팀이 쓰는 코드가 아니야.”</small></div><div class="pcard"><em>P · 감사팀 전임 책임자</em><b>박 과장</b><small>“CYR은 암호화 규격이야. 사람 이름일 리 없어.”</small></div><div class="pcard"><em>CY · 기록관리 담당 · 퇴사</em><b>최유리</b><small>“내 이름을 남기면 파일째 없어져요.”</small></div></div>',
+      prompt: '<div class="cards4"><div class="pcard"><em>19 · 경영지원팀 · 2019.04.26 입사</em><b>나</b><small>“내 번호지만, 이 파일이 만들어질 때 나는 이 회사에 없었다.”</small></div><div class="pcard"><em>K · MIRROR 개발 책임자</em><b>K</b><small>“기록관리 접두어 RM은 개발팀이 쓰는 코드가 아니야.”</small></div><div class="pcard"><em>P · 경영지원팀 과장</em><b>박 과장</b><small>“CYR은 암호화 규격이야. 사람 이름일 리 없어.”</small></div><div class="pcard"><em>CY · 기록관리 담당 · 퇴사</em><b>최유리</b><small>“내 이름을 남기면 파일째 없어져요.”</small></div></div>',
       fields: [
         { key: 'author', label: '누가 만들었나', answer: 'choi', why: '생성 당시 회사에 있었고 CYR-114와 연결되는 인물을 찾자.', options: [{ v: 'me', label: '나' }, { v: 'k', label: 'K' }, { v: 'park', label: '박 과장' }, { v: 'choi', label: '최유리' }] },
         { key: 'method', label: '어떻게 이름을 숨겼나', answer: 'owner', why: '복구 로그는 파일 전체가 아니라 작성자 필드만 바뀌었다고 말한다.', options: [{ v: 'clock', label: 'PC 시간을 2018년으로 변경' }, { v: 'owner', label: '작성자 필드를 다른 번호로 덮어쓰기' }, { v: 'leak', label: '암호를 외부로 유출' }, { v: 'scan', label: '종이 문서를 다시 스캔' }] },
@@ -191,9 +188,9 @@ MO.chapter({
   ],
 
   ending: {
-    title: '분기 3071 — 별관 B1 문서수발실',
-    html: '<p>코드가 들어가자 첨부 파일의 마지막 시트가 펼쳐진다. 셀은 하나도 없다. 대신 카페에서 회사 별관까지 이어지는 지하 통로 도면과, 오전 6시 30분에 붉게 표시된 문 하나가 나타난다.</p><div class="screen-text">CASE 07 / ORIGINAL STATUS: READY\nTARGET: 19-0426-071\nLOCATION: ANNEX B1 · DOCUMENT DISPATCH</div><p>최유리는 과거의 작성자였고, 나는 다음 작성자로 지정돼 있었다. 파일 제목의 “Episode 2”는 두 번째 보고서가 아니라 <b>두 번째 인수인계자</b>라는 뜻이었다.</p><p>카페 유리창 너머, 불 꺼진 회사 별관 지하에서 화물용 엘리베이터가 혼자 올라오기 시작한다.</p>',
-    branch: '3071',
+    title: '두 번째 인수인계자',
+    html: '<p>코드가 들어가자 첨부 파일의 마지막 시트가 펼쳐진다. 셀은 하나도 없다. 대신 한 줄짜리 상태 표시와, 회사 별관 지하로 이어지는 도면이 나타난다.</p><div class="screen-text red">HANDOVER · ROW 08\nTARGET: 19-0426-071\nSTATUS: 06:30 확정 예정\nARCHIVE: ANNEX B1 · DOCUMENT DISPATCH</div><p>최유리는 과거에 책임을 떠안은 사람이었고, 나는 다음 차례로 지정돼 있었다. 파일 이름의 “Episode 2”는 두 번째 보고서가 아니라 <b>두 번째 인수인계자</b>라는 뜻이었다.</p><p>휴대전화가 울린다. 처음 듣는 목소리지만 누군지 알 것 같다.</p><blockquote>“윤서진입니다. 보내 준 패키지 받았어요. 별관 지하 문서수발실로 와요. 6시 30분이 지나면 당신 이름이 그 줄에 확정돼요.”</blockquote>',
+    seal: '3071',
     summary: '파일의 실제 작성자는 기록관리 담당 최유리. 그는 자신의 이름을 지우고 아직 입사하지 않았던 내 사원번호를 작성자 자리에 덮어써, 미래의 대체 책임자만 이 파일을 추적하게 만들었다.',
   },
 });

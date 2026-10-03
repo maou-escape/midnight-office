@@ -15,7 +15,7 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
   await page.goto(URL);
-  await page.evaluate((mute) => { localStorage.clear(); if (mute) localStorage.setItem('midnight-office-remake-v1', JSON.stringify({ v: 1, settings: { bgm: false, marks: false } })); }, !!process.env.MUTE);
+  await page.evaluate((mute) => { localStorage.clear(); if (mute) localStorage.setItem('midnight-office-v2', JSON.stringify({ v: 2, settings: { bgm: 0, sfx: 0 } })); }, !!process.env.MUTE);
   await page.reload();
 
   const wait = (ms) => page.waitForTimeout(ms);
@@ -137,17 +137,30 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
       for (const e of evs) await page.click(`#pzRoot [data-e="${e}"]`);
       await page.click('#acOk');
     },
-    async board(cases) {
-      for (let i = 0; i < cases.length; i++) {
-        const [id, owner, target] = cases[i];
+    async board(ids) {
+      for (let i = 0; i < ids.length; i++) {
         await page.click(`#pzRoot [data-ci="${i}"]`);
-        await page.click(`#pzRoot [data-p="${id}-o"]`);
-        await page.click(`#pzRoot [data-p="${id}-t"]`);
-        await page.selectOption('#pzRoot select[data-s="owner"]', owner);
-        await page.selectOption('#pzRoot select[data-s="target"]', target);
+        await page.click(`#pzRoot [data-p="${ids[i]}-o"]`);
+        await page.click(`#pzRoot [data-p="${ids[i]}-t"]`);
         await page.click('#bdOk');
         await wait(40);
       }
+    },
+    async verify(claim, evs) {
+      await page.click(`#pzRoot [data-c="${claim}"]`);
+      for (const e of evs) await page.click(`#pzRoot [data-e="${e}"]`);
+      await page.click('#vfOk');
+    },
+    async order(ids) {
+      for (let i = 0; i < ids.length; i++) {
+        for (let n = 0; n < 10; n++) {
+          const cur = await page.$$eval('#pzRoot .order-row', (els) => els.map((e) => e.dataset.row));
+          const at = cur.indexOf(ids[i]);
+          if (at === i) break;
+          await page.click(`#pzRoot [data-up="${at}"]`);
+        }
+      }
+      await page.click('#odOk');
     },
   };
   async function solve(type, ...args) {
@@ -159,20 +172,16 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
   }
   const nextStep = () => wait(650);
 
-  async function start(id) {
-    await page.click(`[data-ch="${id}"]`);
-    await wait(100);
-    await closeLook();
-  }
-  async function ending(id) {
-    if (process.env.TRACE) console.log('ending', id);
+  async function next(id) {
     await wait(150);
     const html = await page.innerHTML('#modalBody');
-    if (!/CLEAR/.test(html)) throw new Error(`${id}: 엔딩 화면이 나오지 않음`);
-    if (SHOTS) await page.screenshot({ path: `${SHOTS}/${id}-ending.png` });
-    await page.click('#lookBtns button:has-text("챕터 선택")');
-    await wait(100);
-    console.log(`✓ ${id} 완료`);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/${id}-end.png` });
+    if (/CASE CLOSED/.test(html)) { await page.click('#lookBtns button'); console.log(`✓ ${id} · 결말`); return; }
+    if (!/<h3>/.test(html) || !(await page.$('#lookBtns button'))) throw new Error(`${id}: 장면 전환 화면이 나오지 않음`);
+    await page.click('#lookBtns button'); // 다음 장면으로
+    await wait(150);
+    await closeLook(); // 다음 장면 도입부
+    console.log(`✓ ${id}`);
   }
 
   const plays = {
@@ -186,7 +195,7 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
       await spot('serverPadSpot'); await solve('keypad', '14399'); await closeLook();
       await spot('serverDoor');
       await spot('kcard'); await closeLook(); await spot('console'); await closeLook();
-      await spot('board'); await solve('phrase', ['계획된', '정전']);
+      await spot('board'); await solve('verify', 'plan', ['E1-05', 'E1-04']);
     },
     async e1a2() {
       await spot('roster'); await closeLook();
@@ -196,10 +205,11 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
       await go('facility'); await use('film', 'lightMap'); await solve('keypad', '2408'); await closeLook();
       await go('lobby'); await spot('secPadSpot'); await solve('keypad', '2408'); await closeLook();
       await spot('secDoor');
-      await spot('kCheck'); await solve('phrase', ['복제', '카드']); await closeLook();
+      await spot('monitors'); await closeLook();
+      await spot('kCheck'); await solve('verify', 'clone', ['E1-06', 'E2-04']); await closeLook();
       await spot('meCheck'); await solve('dial', ['00', '0', '2']); await closeLook();
-      await spot('timeCheck'); await solve('keypad', '3'); await closeLook();
-      await spot('board2'); await solve('phrase', ['기록', '조작']);
+      await spot('timeCheck'); await solve('choice', 'retro'); await closeLook();
+      await spot('board2'); await solve('verify', 'manip', ['E2-05', 'E2-06']);
     },
     async e1a3() {
       await spot('fpanel'); await solve('keypad', '318'); await closeLook();
@@ -209,7 +219,7 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
       await go('storage'); await go('repair'); await spot('secretDrawer'); await solve('dial', ['R', '17']); await closeLook();
       await action('player', '재생 버튼 누르기'); await closeLook();
       await go('storage'); await spot('vault'); await solve('choice', 'MIRROR'); await closeLook();
-      await spot('exportDesk'); await solve('phrase', ['의도적', '유도']);
+      await spot('exportDesk'); await solve('verify', 'lure', ['E3-06', 'E1-05']);
     },
     async e1a4() {
       await spot('door-alarm'); await spot('alarmBox'); await solve('dial', ['02', '13']); await closeLook(); await go('hub');
@@ -217,18 +227,19 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
       await spot('door-personnel'); await spot('carbon'); await solve('choice', 'standby'); await closeLook(); await go('hub');
       await spot('door-ledger'); await spot('voucherSafe'); await solve('dial', ['C', '17']); await closeLook(); await go('hub');
       await spot('door-comms'); await spot('tape'); await solve('dial', ['02', '13']); await closeLook(); await go('hub');
-      await spot('verdict'); await solve('phrase', ['원본', '검증']);
+      await spot('verdict'); await solve('order', ['fire', 'call', 'manual', 'erase', 'money', 'yoon']);
     },
     async e1a5() {
       await spot('authScreen'); await solve('keypad', '4341'); await closeLook();
       await spot('controlDoor');
       await spot('official'); await closeLook();
-      await spot('kv'); await solve('phrase', ['개발', '책임']); await closeLook();
-      await spot('yv'); await solve('phrase', ['원본', '보존']); await closeLook();
-      await spot('cv'); await solve('phrase', ['사원번호', '복제']); await closeLook();
-      await spot('invoice'); await solve('keypad', '883'); await closeLook();
-      await spot('pack'); await solve('keypad', '743543'); await closeLook();
-      await go('elevator'); await spot('exitConsole'); await solve('phrase', ['퇴근']);
+      await spot('kv'); await solve('verify', 'k2', ['E3-04', 'E3-03']); await closeLook();
+      await spot('yv'); await solve('verify', 'y2', ['E3-05', 'E4-03']); await closeLook();
+      await spot('cv'); await solve('verify', 'c3', ['E2-06', 'E3-03']); await closeLook();
+      await spot('invoice'); await closeLook();
+      await spot('iv'); await solve('verify', 'm2', ['E4-04', 'E5-05']); await closeLook();
+      await spot('pack'); await solve('checks', ['audit', 'press']); await closeLook();
+      await go('elevator'); await spot('exitConsole'); await solve('choice', 'leave');
     },
     async e2a1() {
       await spot('cupSpot'); await closeLook(); await spot('env1'); await closeLook();
@@ -247,27 +258,26 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
       await go('storage'); await spot('rackmap'); await closeLook();
       await spot('rRow'); await solve('dial', ['R', '04']); await nextStep(); await solve('fragments', ['START · ▲', '▲ R ●', '● 0 ■', '■ 4 END']); await closeLook();
       await go('lightroom');
-      await spot('caseBoard'); await solve('board', [['A', '강민호', '오지은'], ['B', '백현수', '이선우'], ['C', '문재혁', '김미정'], ['D', '한도경', '박주원'], ['E', '서동훈', '정하린'], ['F', '박기태', '최유리'], ['G', '조성원', '나']]); await closeLook();
+      await spot('caseBoard'); await solve('board', ['A', 'B', 'C', 'D', 'E', 'F', 'G']); await closeLook();
       await spot('ruleBoard'); await solve('checks', ['exit', 'audit', 'leave', 'isolated']); await nextStep(); await solve('phrase', ['즉시', '소명', '불가']); await closeLook();
-      await spot('lightbox'); await solve('layers'); await nextStep(); await solve('phrase', ['05', '14']); await nextStep(); await solve('choice', '윤서진'); await closeLook();
-      await spot('branchPad'); await solve('keypad', '5148');
+      await spot('lightbox'); await solve('layers'); await nextStep(); await solve('phrase', ['04', '26']); await nextStep(); await solve('choice', 'hire'); await closeLook();
+      await spot('branchPad'); await solve('keypad', '4268');
     },
   };
 
   let failed = 0;
-  const only = process.env.ONLY ? process.env.ONLY.split(',') : null;
-  for (const [id, play] of Object.entries(plays)) {
-    if (only && !only.includes(id)) continue;
-    try { await start(id); await play(); await ending(id); }
-    catch (e) {
-      failed++;
-      console.log(`✗ ${id}: ${e.message}`);
-      if (SHOTS) await page.screenshot({ path: `${SHOTS}/${id}-fail.png` });
-      await page.goto(URL); await wait(200);
-    }
+  try {
+    await page.click('#tNew'); await wait(150); await closeLook();
+    for (const [id, play] of Object.entries(plays)) { await play(); await next(id); }
+    const title = await page.isVisible('#title');
+    if (!title) throw new Error('결말 뒤 타이틀로 돌아가지 않음');
+  } catch (e) {
+    failed++;
+    console.log(`✗ ${e.message}`);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/fail.png` });
   }
   if (errors.length) { console.log('브라우저 오류:\n' + [...new Set(errors)].join('\n')); failed++; }
-  console.log(failed ? `실패 ${failed}건` : '모든 막 통과');
+  console.log(failed ? `실패 ${failed}건` : '처음부터 결말까지 통과');
   await browser.close();
   process.exit(failed ? 1 : 0);
 })();

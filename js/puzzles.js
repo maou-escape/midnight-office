@@ -423,28 +423,26 @@
     draw();
   };
 
-  /* 일곱 사건 연결 보드 */
+  /* 사건 보드: 사건마다 서로 다른 출처의 원본 카드 두 장(승인·대체)을 고른다 */
   W.board = (ctx) => {
     const { pz, state } = ctx;
     state.i = state.i || 0; state.c = state.c || {};
-    const S = (id) => state.c[id] || (state.c[id] = { owner: '', target: '', proofs: [], done: false });
+    const S = (id) => state.c[id] || (state.c[id] = { proofs: [], done: false });
     const draw = () => {
       const c = pz.cases[state.i], a = S(c.id);
       const nx = pz.cases[(state.i + 1) % pz.cases.length];
       const cards = [
         { id: c.id + '-t', kind: '대체 단서', src: pz.src[c.src[1]], label: `CASE ${c.id} · 대체 코드 ${c.tc}`, sub: `${c.date} ${c.time} · ${c.tag}` },
-        { id: c.id + '-c', kind: '복제 사본', src: pz.src[c.src[0]], label: `CASE ${c.id} · MIRROR COPY ${c.oc}`, sub: '원승인 기록을 복제한 서버 사본' },
+        { id: c.id + '-c', kind: '복제 사본', src: pz.src[c.src[0]], label: `CASE ${c.id} · MIRROR COPY ${c.oc}`, sub: `${c.date} ${c.time} · 원승인 기록의 서버 사본` },
         { id: nx.id + '-t', kind: '대체 단서', src: pz.src[nx.src[1]], label: `CASE ${nx.id} · 대체 코드 ${nx.tc}`, sub: `${nx.date} ${nx.time} · ${nx.tag}` },
         { id: c.id + '-o', kind: '승인 단서', src: pz.src[c.src[0]], label: `CASE ${c.id} · 승인 코드 ${c.oc}`, sub: `${c.date} ${c.time} · 원승인 서명` },
       ];
+      if (state.i % 2) cards.reverse();
       ctx.root.innerHTML = `
         <div class="case-tabs">${pz.cases.map((x, i) => `<button class="${i === state.i ? 'on' : ''} ${S(x.id).done ? 'done' : ''}" data-ci="${i}">${x.id}</button>`).join('')}</div>
         <div class="paper" style="white-space:normal"><b>CASE ${c.id} · ${esc(c.title)}</b><br>${c.date} ${c.time} · ${esc(c.place)}<br>${esc(c.text)}</div>
-        <div class="directory"><div><b>원래 승인자 코드</b><br>${pz.owners.map(([n, k]) => `${k} ${n}`).join('<br>')}</div><div><b>대체 책임자 코드</b><br>${pz.targets.map(([n, k]) => `${k} ${n}`).join('<br>')}</div></div>
         <div class="cards4">${cards.map((p) => `<button class="pcard ${a.proofs.includes(p.id) ? 'on' : ''}" data-p="${p.id}" ${a.done ? 'disabled' : ''}><em>${p.kind} · ${p.src}</em><b>${esc(p.label)}</b><small>${esc(p.sub)}</small></button>`).join('')}</div>
-        <div class="selects"><label>원래 승인자<select data-s="owner" ${a.done ? 'disabled' : ''}><option value="">— 선택 —</option>${pz.owners.map(([n]) => `<option ${a.owner === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-        <label>대체 책임자<select data-s="target" ${a.done ? 'disabled' : ''}><option value="">— 선택 —</option>${pz.targets.map(([n]) => `<option ${a.target === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
-        <div class="btn-row"><button class="btn" id="bdOk" ${a.done ? 'disabled' : ''}>${a.done ? `연결 완료 · ${c.owner} → ${c.target}` : '이 사건 연결 확정'}</button></div>
+        ${a.done ? `<div class="verify-sel">확정 · 원래 승인자 <b>${esc(c.owner)}</b> (${c.oc}) → 대체 책임자 <b>${esc(c.target)}</b> (${c.tc})</div>` : '<div class="btn-row"><button class="btn" id="bdOk">이 사건 연결 확정</button></div>'}
         <p class="note">사건 ${pz.cases.filter((x) => S(x.id).done).length} / ${pz.cases.length} 연결됨</p>`;
       ctx.root.querySelectorAll('[data-ci]').forEach((b) => b.addEventListener('click', () => { state.i = +b.dataset.ci; ctx.feedback(''); ctx.save(); draw(); }));
       ctx.root.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => {
@@ -452,20 +450,69 @@
         a.proofs = a.proofs.includes(id) ? a.proofs.filter((x) => x !== id) : [...a.proofs.slice(-1), id];
         ctx.feedback(''); ctx.save(); draw();
       }));
-      ctx.root.querySelectorAll('[data-s]').forEach((s) => s.addEventListener('change', () => { a[s.dataset.s] = s.value; ctx.feedback(''); ctx.save(); }));
-      ctx.root.querySelector('#bdOk').addEventListener('click', () => {
-        if (a.proofs.length !== 2) return ctx.fail('승인 단서 1장과 대체 단서 1장을 고르세요.');
-        if (a.proofs.includes(c.id + '-c')) return ctx.fail('MIRROR COPY는 원본을 복제한 사본이라 독립 증거가 아니다.');
+      ctx.root.querySelector('#bdOk')?.addEventListener('click', () => {
+        if (a.proofs.length !== 2) return ctx.fail('카드 두 장을 고르세요.');
+        if (a.proofs.includes(c.id + '-c')) return ctx.fail('MIRROR COPY는 원본을 복제한 서버 사본이다. 원본과 같은 출처라 독립 증거가 아니다.');
         if (a.proofs.includes(nx.id + '-t')) return ctx.fail(`그 카드는 CASE ${nx.id}의 것이다. 사건 문자와 날짜·시각을 맞추세요.`);
-        if (!a.owner || !a.target) return ctx.fail('코드표를 보고 두 사람의 이름을 모두 고르세요.');
-        if (a.owner !== c.owner) return ctx.fail(`승인 코드 ${c.oc}의 이름을 코드표에서 다시 찾으세요.`);
-        if (a.target !== c.target) return ctx.fail(`대체 코드 ${c.tc}의 이름을 코드표에서 다시 찾으세요.`);
         a.done = true;
         ctx.save();
-        if (pz.cases.every((x) => S(x.id).done)) return ctx.solve();
+        if (pz.cases.every((x) => S(x.id).done)) { draw(); return ctx.solve(); }
         state.i = pz.cases.findIndex((x) => !S(x.id).done);
         draw();
-        ctx.feedback(`CASE ${c.id} 연결 완료. 다음 사건으로.`, 'good');
+        ctx.feedback(`CASE ${c.id} 확정: ${c.owner} → ${c.target}. 다음 사건으로.`, 'good');
+      });
+    };
+    draw();
+  };
+
+  /* 교차 검증: 결론 하나 + 그 결론을 독립적으로 뒷받침하는 증거 두 장 */
+  W.verify = (ctx) => {
+    const { pz, state, g } = ctx;
+    state.ev = state.ev || [];
+    const pool = g.evidence();
+    const draw = () => {
+      const groups = MO.evidenceGroups(pool);
+      ctx.root.innerHTML = `
+        <p class="note">① 결론을 고르세요.</p>
+        <div class="claims">${pz.claims.map((c) => `<button class="choice ${state.claim === c.v ? 'on' : ''}" data-c="${esc(c.v)}"><b>${esc(c.label)}</b></button>`).join('')}</div>
+        <p class="note" style="margin-top:14px">② 그 결론을 증명하는, 서로 다른 곳에서 나온 기록 두 장을 고르세요.</p>
+        <div class="ev-pick">${groups.map(([p, ids]) => `<h5>${esc(p.time)} · ${esc(p.place)}</h5><div class="chips">${ids.map((id) => { const it = g._item(id); return `<button class="chip ${state.ev.includes(id) ? 'on' : ''}" data-e="${id}" title="${esc(it.short || '')}"><small>${esc(it.code)}</small>${esc(it.name)}</button>`; }).join('')}</div>`).join('')}</div>
+        <div class="verify-sel">선택: ${state.claim ? `<b>${esc(pz.claims.find((c) => c.v === state.claim).label)}</b>` : '결론 없음'} · 증거 ${state.ev.map((id) => `<b>${esc(g._item(id).code)}</b>`).join(' + ') || '없음'}</div>
+        <div class="btn-row"><button class="btn" id="vfOk">${esc(pz.okLabel || '보드에 적기')}</button></div>`;
+      ctx.root.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { state.claim = b.dataset.c; ctx.feedback(''); ctx.save(); draw(); }));
+      ctx.root.querySelectorAll('[data-e]').forEach((b) => b.addEventListener('click', () => {
+        const id = b.dataset.e;
+        state.ev = state.ev.includes(id) ? state.ev.filter((x) => x !== id) : [...state.ev.slice(-1), id];
+        ctx.feedback(''); ctx.save(); draw();
+      }));
+      ctx.root.querySelector('#vfOk').addEventListener('click', () => {
+        if (!state.claim) return ctx.fail('먼저 결론을 고르세요.');
+        if (state.claim !== pz.answer) return ctx.fail(pz.claims.find((c) => c.v === state.claim).why || '그 결론은 기록과 맞지 않는다.');
+        if (state.ev.length !== 2) return ctx.fail('증거 두 장을 고르세요. 기록 하나만으로는 사실로 적지 않는다.');
+        const ok = pz.pairs.some((pair) => pair.every((id) => state.ev.includes(id)));
+        if (ok) return ctx.solve();
+        const half = pz.pairs.some((pair) => pair.some((id) => state.ev.includes(id)));
+        const msg = state.ev.map((id) => pz.notes && pz.notes[id]).find(Boolean);
+        ctx.fail(msg || (half ? '하나는 맞다. 그 기록과 다른 곳에서 나온, 같은 말을 하는 두 번째 기록이 필요하다.' : (pz.evWhy || '고른 기록이 이 결론을 직접 증명하지 못한다.')));
+      });
+    };
+    draw();
+  };
+
+  /* 순서 맞추기 */
+  W.order = (ctx) => {
+    const { pz, state } = ctx;
+    state.o = state.o || [...pz.start];
+    const draw = () => {
+      ctx.root.innerHTML = `<div class="order-list">${state.o.map((id, i) => { const c = pz.cards.find((x) => x.id === id); return `<div class="order-row" data-row="${id}"><span class="n">${i + 1}</span><span class="t">${esc(c.label)}${c.sub ? `<small>${esc(c.sub)}</small>` : ''}</span><button data-up="${i}" aria-label="위로">▲</button><button data-down="${i}" aria-label="아래로">▼</button></div>`; }).join('')}</div>
+        <div class="btn-row"><button class="btn" id="odOk">${esc(pz.okLabel || '이 순서로 봉인')}</button></div>`;
+      const swap = (i, j) => { if (j < 0 || j >= state.o.length) return; [state.o[i], state.o[j]] = [state.o[j], state.o[i]]; ctx.feedback(''); ctx.save(); draw(); };
+      ctx.root.querySelectorAll('[data-up]').forEach((b) => b.addEventListener('click', () => swap(+b.dataset.up, +b.dataset.up - 1)));
+      ctx.root.querySelectorAll('[data-down]').forEach((b) => b.addEventListener('click', () => swap(+b.dataset.down, +b.dataset.down + 1)));
+      ctx.root.querySelector('#odOk').addEventListener('click', () => {
+        const wrong = state.o.findIndex((id, i) => id !== pz.answer[i]);
+        if (wrong < 0) return ctx.solve();
+        ctx.fail(`${wrong + 1}번째 자리부터 순서가 어긋난다. ${pz.failText || ''}`);
       });
     };
     draw();
