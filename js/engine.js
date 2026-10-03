@@ -119,7 +119,8 @@
     renderRoom(); renderInventory();
     if (showIntro) {
       openLook({
-        loc: `${def.time} · ${def.place}`, title: def.title, html: def.intro,
+        loc: `${def.time} · ${def.place}`, title: def.title, wide: true,
+        html: `${def.intro}${(def.people || []).filter((x) => x.card !== false).length ? `<div class="cast">${def.people.filter((x) => x.card !== false).map((x) => `<div><b>${esc(x.name)}</b><span>${esc(x.role)}</span></div>`).join('')}</div>` : ''}${def.goal ? `<div class="situation"><b>해야 할 일</b>${def.goal}</div>` : ''}`,
         buttons: [{ label: '조사 시작' }],
         onClose: () => { st.intro[def.id] = true; save(); },
       });
@@ -136,7 +137,7 @@
   }
 
   function applyTitle(onTitle) {
-    if (st.settings.work) document.title = '3분기_업무보고_최종.xlsx - Excel';
+    if (st.settings.work) document.title = `${sheetFile()} - Excel`;
     else document.title = onTitle || !ch ? 'Midnight Office' : `${ch.time} ${ch.place} — Midnight Office`;
     $('#partName').textContent = ch ? `${ch.time} · ${ch.title}` : '';
   }
@@ -161,6 +162,7 @@
     const room = ch.rooms[st.room];
     $('#roomName').textContent = val(room.name, g);
     const art = (val(room.art, g) || []).map((p) => ({ ...p, when: val(p.when, g) }));
+    if (st.settings.work) { renderSheet(room, art); renderObjective(); return; }
     $('#art').innerHTML = MOArt.render(art, val(room.mood, g) || {});
     const box = $('#spots');
     box.innerHTML = '';
@@ -181,16 +183,83 @@
       const b = document.createElement('button');
       b.textContent = '→ ' + val(e.label, g);
       b.dataset.to = e.to;
-      b.addEventListener('click', () => {
-        if (selected) selectItem(null);
-        if (e.need && !e.need(g)) return openLook({ title: val(e.label, g), html: val(e.locked, g) || '<p>지금은 갈 수 없다.</p>' });
-        goRoom(e.to);
-      });
+      b.addEventListener('click', () => tryExit(e));
       nav.appendChild(b);
     });
     $('#stage').classList.toggle('show-marks', !!st.settings.marks);
     renderObjective();
   }
+
+  function tryExit(e) {
+    if (selected) selectItem(null);
+    if (e.need && !e.need(g)) return openLook({ title: val(e.label, g), html: val(e.locked, g) || '<p>지금은 갈 수 없다.</p>' });
+    goRoom(e.to);
+  }
+
+  /* 업무 모드: 같은 방을 스프레드시트로 보여 준다 */
+  function spotStatus(s) {
+    const pid = s.puzzle && val(s.puzzle, g);
+    if (pid && st.solved[key(pid)]) return ['완료', 'ok'];
+    if (s.give && [].concat(val(s.give, g)).every((id) => usedOrHas(id))) return ['확보', 'ok'];
+    if (st.seen.includes(key(s.id))) return [s.need && !s.need(g) ? '잠김' : '확인함', s.need && !s.need(g) ? 'lock' : 'seen'];
+    return ['미확인', 'new'];
+  }
+  function renderSheet(room, art) {
+    const spots = roomSpots(room, art);
+    const exits = (room.exits || []).filter((e) => !e.show || e.show(g));
+    const things = st.items.filter((id) => MO.items[id] && !MO.items[id].ev);
+    const cols = 'ABCDEFG'.split('');
+    let r = 0;
+    const row = (cells, cls = '', attrs = '') => { r++; return `<tr class="${cls}" ${attrs}><th>${r}</th>${cols.map((c, i) => `<td${cells[i] && cells[i].cls ? ` class="${cells[i].cls}"` : ''}>${cells[i] ? (cells[i].h ?? esc(cells[i])) : ''}</td>`).join('')}</tr>`; };
+    let html = '';
+    html += row([{ h: `<b>${esc(ch.time)} ${esc(ch.place)}</b>` }, '', '', '', '', '', ''], 'xl-titlerow');
+    html += row([{ h: `<b>${esc(val(room.name, g))}</b>` }]);
+    html += row([]);
+    html += row(['No', '조사 대상', '상태', '비고'], 'xl-head');
+    spots.forEach((s, i) => {
+      const [stt, cls] = spotStatus(s);
+      html += row([String(i + 1), { h: `<span class="xl-link">${esc(val(s.label, g))}</span>` }, { h: stt, cls: 'xl-st ' + cls }, selected ? `← ${MO.items[selected].name} 쓰기` : ''], 'xl-row', `data-spot="${esc(s.id)}"`);
+    });
+    html += row([]);
+    html += row(['', '이동할 곳'], 'xl-head');
+    exits.forEach((e) => { html += row(['→', { h: `<span class="xl-link">${esc(val(e.label, g))}</span>` }, e.need && !e.need(g) ? { h: '잠김', cls: 'xl-st lock' } : ''], 'xl-row', `data-to="${esc(e.to)}"`); });
+    if (!exits.length) html += row(['', '(이 방에서는 다른 곳으로 갈 수 없음)']);
+    html += row([]);
+    html += row(['', '소지품', '', '설명'], 'xl-head');
+    html += row(['🗂', { h: `<span class="xl-link">증거 파일 ${g.evidence().length}건</span>` }, '', '모은 기록 보기'], 'xl-row', 'data-item="__file"');
+    things.forEach((id) => { const it = MO.items[id]; html += row([it.icon || '▪', { h: `<span class="xl-link">${esc(it.name)}</span>` }, selected === id ? { h: '사용 중', cls: 'xl-st sel' } : '', ''], 'xl-row' + (selected === id ? ' xl-sel' : ''), `data-item="${esc(id)}"`); });
+    for (let k = 0; k < 6; k++) html += row([]);
+    const pic = st.settings.pic ? `<div class="xl-pic"><div class="xl-pic-cap">그림 1</div>${MOArt.render(art, val(room.mood, g) || {})}</div>` : '';
+    $('#sheet').innerHTML = `
+      <div class="xl-app">
+        <div class="xl-titlebar"><span>${esc(sheetFile())} - Excel</span><span class="xl-win">— ☐ ✕</span></div>
+        <div class="xl-ribbon">
+          <div class="xl-menus"><b>파일</b><span>홈</span><span>삽입</span><span>페이지 레이아웃</span><span>수식</span><span>데이터</span><span>검토</span><span>보기</span></div>
+          <div class="xl-tools">
+            <button data-act="hint" title="힌트 (H)">💡<span>힌트</span></button>
+            <button data-act="note" title="수첩 (N)">📒<span>수첩</span></button>
+            <button data-act="file" title="증거 파일 (F)">🗂<span>증거</span></button>
+            <button data-act="pic" title="방 그림 표시">🖼<span>${st.settings.pic ? '그림 숨김' : '그림 표시'}</span></button>
+            <button data-act="mute" title="소리 (M)">🔈<span>소리</span></button>
+            <button data-act="set" title="설정">⚙<span>설정</span></button>
+            <button data-act="menu" title="타이틀로">⌂<span>타이틀</span></button>
+          </div>
+        </div>
+        <div class="xl-formula"><span class="xl-name">${esc(ch.title)}!B5</span><i>fx</i><span class="xl-fx">=현재목표("${esc((currentObjective() || { text: '마지막 장치를 확인하세요' }).text)}")</span></div>
+        <div class="xl-body"><table class="xl xl-play"><colgroup><col style="width:40px"><col style="width:52px"><col style="width:42%"><col style="width:84px"><col><col><col><col></colgroup><tr><th></th>${cols.map((c) => `<th>${c}</th>`).join('')}</tr>${html}</table>${pic}</div>
+        <div class="xl-tabs">${[{ to: st.room, label: val(room.name, g).split('·').pop().trim(), on: true }, ...exits.map((e) => ({ to: e.to, label: val(e.label, g), e }))].map((t) => `<button class="${t.on ? 'on' : ''}" ${t.on ? '' : `data-to="${esc(t.to)}"`}>${esc(t.label)}</button>`).join('')}<span class="xl-plus">＋</span></div>
+        <div class="xl-status"><span>${selected ? `${esc(MO.items[selected].name)} 사용 중 · 쓸 행을 누르세요` : '준비'}</span><span>${esc(ch.time)} · 저장됨 · 100%</span></div>
+      </div>`;
+    const root = $('#sheet');
+    root.querySelectorAll('tr[data-spot]').forEach((tr) => tr.addEventListener('click', () => clickSpot(spots.find((s) => s.id === tr.dataset.spot))));
+    root.querySelectorAll('[data-to]').forEach((el) => el.addEventListener('click', () => tryExit(exits.find((e) => e.to === el.dataset.to))));
+    root.querySelectorAll('tr[data-item]').forEach((tr) => tr.addEventListener('click', () => (tr.dataset.item === '__file' ? showFile() : clickItem(tr.dataset.item))));
+    root.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => ({
+      hint: showHint, note: showNote, file: showFile, mute: toggleMute, set: showSettings, menu: backToTitle,
+      pic: () => { st.settings.pic = !st.settings.pic; save(); renderRoom(); },
+    })[b.dataset.act]()));
+  }
+  function sheetFile() { return ch ? `${ch.time.replace(':', '')}_${ch.place.replace(/\s+/g, '_')}_점검표.xlsx` : '통합 문서1.xlsx'; }
 
   function markSeen(id) { if (id && !st.seen.includes(key(id))) { st.seen.push(key(id)); save(); } }
 
@@ -238,6 +307,7 @@
   /* ---------------- 소지품 · 증거 파일 ---------------- */
   function renderInventory(fresh = []) {
     if (!ch) return;
+    if (st.settings.work) { if (!$('#game').classList.contains('hidden')) renderRoom(); return; }
     const things = st.items.filter((id) => MO.items[id] && !MO.items[id].ev);
     const evCount = g.evidence().length;
     const list = $('#inventory');
@@ -298,7 +368,7 @@
       const it = MO.items[id];
       return `<details class="ev"><summary><small>${esc(it.code)}</small><b>${esc(it.name)}</b></summary><div>${val(it.desc, g)}</div></details>`;
     }).join('')}</div>`).join('') : '<p class="note">아직 확보한 증거가 없다.</p>';
-    openLook({ loc: '증거 파일', title: `확보한 기록 ${g.evidence().length}건`, html: `<p class="note">항목을 누르면 내용을 펼칩니다. 결론을 내릴 때는 서로 다른 곳에서 나온 기록 두 개를 함께 내야 합니다.</p>${html}`, wide: true });
+    openLook({ loc: '증거 파일', title: `확보한 기록 ${g.evidence().length}건`, html: `<p class="note">항목을 누르면 내용을 펼칩니다. 결론을 적을 때는 서로 다른 곳에서 나온 기록 두 장을 함께 냅니다.</p>${html}`, wide: true });
   }
 
   /* ---------------- 모달 ---------------- */
@@ -428,7 +498,7 @@
       st.done = true; save();
       openLook({
         wide: true,
-        html: `<p class="ending-kicker">CASE CLOSED</p><h3>${esc(e.title)}</h3>${e.html}<div class="ending-stats"><span>플레이 시간 <b>${fmtTime(st.playMs)}</b></span><span>확보한 증거 <b>${g.evidence().length}건</b></span><span>사용한 힌트 <b>${Object.values(st.hints).reduce((a, b) => a + b, 0)}개</b></span></div>`,
+        html: `<p class="ending-kicker">CASE CLOSED</p><h3>${esc(e.title)}</h3>${e.html}${e.learned ? `<div class="situation"><b>알게 된 것</b><ul>${e.learned.map((x) => `<li>${x}</li>`).join('')}</ul></div>` : ''}<div class="ending-stats"><span>플레이 시간 <b>${fmtTime(st.playMs)}</b></span><span>확보한 증거 <b>${g.evidence().length}건</b></span><span>사용한 힌트 <b>${Object.values(st.hints).reduce((a, b) => a + b, 0)}개</b></span></div>`,
         buttons: [{ label: '타이틀로', act: backToTitle }],
         onClose: backToTitle,
       });
@@ -440,7 +510,7 @@
     save();
     openLook({
       wide: true,
-      html: `<p class="ending-kicker">${esc(ch.time)} · ${esc(ch.place)}</p><h3>${esc(e.title)}</h3>${e.html}${e.seal ? `<p class="note">층 봉인 번호 <b class="mono seal">${esc(e.seal)}</b> · 수첩에 기록됨</p>` : ''}`,
+      html: `<p class="ending-kicker">${esc(ch.time)} · ${esc(ch.place)}</p><h3>${esc(e.title)}</h3>${e.html}${e.learned ? `<div class="situation"><b>알게 된 것</b><ul>${e.learned.map((x) => `<li>${x}</li>`).join('')}</ul></div>` : ''}${e.seal ? `<p class="note">이 층의 확인 번호 <b class="mono seal">${esc(e.seal)}</b> · 수첩에 적어 둠</p>` : ''}`,
       buttons: [{ label: `${next.time} · ${next.place}로` }],
       onClose: () => enterPart(next, true),
     });
@@ -450,10 +520,15 @@
   function showNote() {
     const seals = MO.parts.filter((p) => st.seals[p.id]).map((p) => `<li>${esc(p.time)} ${esc(p.place)} · <b class="mono">${st.seals[p.id]}</b></li>`).join('');
     const done = MO.parts.slice(0, st.part).map((p) => `<li>${esc(p.time)} · ${esc(p.title)} — ${esc(p.ending.summary)}</li>`).join('');
+    const known = MO.parts.slice(0, st.part + 1);
+    const people = known.flatMap((p) => p.people || []);
+    const terms = known.flatMap((p) => p.terms || []);
+    const cast = people.length ? `<p class="note">등장인물</p><div class="cast">${people.map((x) => `<div><b>${esc(x.name)}</b><span>${esc(x.role)}</span></div>`).join('')}</div>` : '';
+    const words = terms.length ? `<p class="note">알아 둘 말</p><div class="cast">${terms.map((x) => `<div><b>${esc(x.name)}</b><span>${esc(x.role)}</span></div>`).join('')}</div>` : '';
     openLook({
       loc: '수사 수첩', title: '지금까지의 밤', wide: true,
-      html: `${done ? `<ol class="story-so-far">${done}</ol>` : '<p class="note">아직 첫 장면이다.</p>'}
-        ${seals ? `<p class="note">층 봉인 번호</p><ul class="seals">${seals}</ul>` : ''}
+      html: `${ch.goal ? `<div class="situation"><b>지금 해야 할 일</b>${ch.goal}</div>` : ''}${cast}${words}<p class="note">지금까지 알게 된 것</p>${done ? `<ol class="story-so-far">${done}</ol>` : '<p class="note">아직 첫 장면이다.</p>'}
+        ${seals ? `<p class="note">층별 확인 번호</p><ul class="seals">${seals}</ul>` : ''}
         <p class="note">메모 (자동 저장)</p><textarea class="memo" id="memo" placeholder="숫자, 시각, 수상한 점을 적어 두세요."></textarea>`,
       buttons: [{ label: '닫기' }, { label: '증거 파일 보기', ghost: true, act: showFile }],
     });
@@ -472,7 +547,7 @@
         <div class="set-row"><label>글자 크기</label><div class="seg">${[['s', '작게'], ['m', '보통'], ['l', '크게']].map(([v, l]) => `<button data-font="${v}" class="${s.font === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
         <div class="set-row"><label for="sMarks">조사 지점 항상 표시</label><input type="checkbox" id="sMarks" ${s.marks ? 'checked' : ''}></div>
         <div class="set-row"><label for="sWork">업무 모드</label><input type="checkbox" id="sWork" ${s.work ? 'checked' : ''}></div>
-        <p class="note">업무 모드는 화면을 스프레드시트처럼 차분하게 바꾸고 탭 제목도 업무 파일 이름으로 바꿉니다. 언제든 <kbd>\`</kbd> 키(숫자 1 왼쪽)나 위쪽 ▦ 버튼을 누르면 가짜 업무 시트가 바로 화면을 덮고 소리가 꺼집니다. 돌아올 때는 <kbd>\`</kbd> 키를 다시 누르거나 시트 아래쪽 <b>“시트3”</b> 탭을 누르세요.</p>
+        <p class="note">업무 모드를 켜면 게임 전체가 엑셀 시트 모양으로 바뀝니다. 조사할 곳은 시트의 행, 이동할 곳은 아래쪽 시트 탭, 현재 목표는 수식 입력줄에 나옵니다. 행을 누르면 조사하고, 리본의 “그림 표시”로 방 그림을 작게 띄울 수 있습니다. 언제든 <kbd>\`</kbd> 키(숫자 1 왼쪽)나 위쪽 ▦ 버튼을 누르면 가짜 업무 시트가 바로 화면을 덮고 소리가 꺼집니다. 돌아올 때는 <kbd>\`</kbd> 키를 다시 누르거나 시트 아래쪽 <b>“시트3”</b> 탭을 누르세요.</p>
         <p class="note">단축키 · <kbd>H</kbd> 힌트 · <kbd>N</kbd> 수첩 · <kbd>F</kbd> 증거 파일 · <kbd>M</kbd> 소리 끄기/켜기 · <kbd>Esc</kbd> 창 닫기</p>`,
       buttons: [{ label: '닫기' }],
     });
@@ -492,7 +567,9 @@
     bgm.volume = Math.min(1, s.bgm * 0.55);
     if (s.bgm === 0) bgm.pause(); else if (ch && bgm.paused && !$('#game').classList.contains('hidden') && !bossOn) bgm.play().catch(() => {});
     document.documentElement.dataset.font = s.font;
+    const wasWork = document.body.classList.contains('work');
     document.body.classList.toggle('work', !!s.work);
+    if (wasWork !== !!s.work && ch && !$('#game').classList.contains('hidden')) { renderRoom(); renderInventory(); }
     $('#stage')?.classList.toggle('show-marks', !!s.marks);
     $('#btnMute').classList.toggle('off', s.bgm === 0 && s.sfx === 0);
     applyTitle(!$('#title').classList.contains('hidden'));

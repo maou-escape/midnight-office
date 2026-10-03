@@ -15,7 +15,8 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
   await page.goto(URL);
-  await page.evaluate((mute) => { localStorage.clear(); if (mute) localStorage.setItem('midnight-office-v2', JSON.stringify({ v: 2, settings: { bgm: 0, sfx: 0 } })); }, !!process.env.MUTE);
+  const WORK = !!process.env.WORK; // 업무 모드(엑셀 화면)로 진행
+  await page.evaluate(([mute, work]) => { localStorage.clear(); if (mute || work) localStorage.setItem('midnight-office-v2', JSON.stringify({ v: 2, settings: { bgm: mute ? 0 : 0.6, sfx: mute ? 0 : 0.6, work } })); }, [!!process.env.MUTE, WORK]);
   await page.reload();
 
   const wait = (ms) => page.waitForTimeout(ms);
@@ -29,25 +30,25 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
   }
   async function spot(id) {
     if (process.env.TRACE) console.log("spot", id);
-    const el = await page.$(`.spot[data-spot="${id}"]`);
+    const el = await page.$(WORK ? `#sheet tr[data-spot="${id}"]` : `.spot[data-spot="${id}"]`);
     if (!el) throw new Error(`조사 지점 없음: ${id} (방: ${await page.textContent('#roomName')})`);
     await el.click();
     await wait(60);
   }
   async function go(room) {
-    const el = await page.$(`#roomNav [data-to="${room}"]`);
+    const el = await page.$(WORK ? `#sheet tr[data-to="${room}"]` : `#roomNav [data-to="${room}"]`);
     if (!el) throw new Error(`이동 버튼 없음: ${room}`);
     await el.click();
     await wait(60);
   }
   async function hold(item) {
-    await page.click(`#inventory [data-item="${item}"]`);
+    await page.click(WORK ? `#sheet tr[data-item="${item}"]` : `#inventory [data-item="${item}"]`);
     await page.click('#lookBtns button:has-text("들고 쓰기")');
     await wait(40);
   }
   async function use(item, spotId) { await hold(item); await spot(spotId); }
-  async function combine(a, b) { await hold(a); await page.click(`#inventory [data-item="${b}"]`); await wait(60); }
-  async function action(item, label) { await page.click(`#inventory [data-item="${item}"]`); await page.click(`#lookBtns button:has-text("${label}")`); await wait(60); }
+  async function combine(a, b) { await hold(a); await page.click(WORK ? `#sheet tr[data-item="${b}"]` : `#inventory [data-item="${b}"]`); await wait(60); }
+  async function action(item, label) { await page.click(WORK ? `#sheet tr[data-item="${item}"]` : `#inventory [data-item="${item}"]`); await page.click(`#lookBtns button:has-text("${label}")`); await wait(60); }
 
   /* ---- 장치별 풀이 ---- */
   const S = {
@@ -247,7 +248,7 @@ const SHOTS = process.env.SHOTS; // 폴더를 주면 각 막 엔딩 화면을 �
       await go('table');
       await combine('phone', 'reader'); await solve('circuit', { 0: 90, 1: [0, 180], 2: 180, 3: 270, 5: 0 }); await closeLook();
       await combine('sleeve', 'letter'); await solve('grille', 2, 1); await closeLook();
-      await action('phone', '첨부 파일 열기'); await solve('phrase', ['인', '수', '인', '계']); await closeLook();
+      await action('phone', '파일 열기'); await solve('phrase', ['인', '수', '인', '계']); await closeLook();
       await spot('env2'); await solve('maze', ['N', 'E', 'N', 'S', 'E', 'N']); await closeLook();
       await spot('mysteryBox'); await solve('accuse', { author: 'choi', method: 'owner', motive: 'warn' }, ['E-03', 'E-04', 'E-05', 'E-06']); await closeLook();
       await spot('env3'); await solve('balance', ['rm', 'voice', 'seal'], ['owner', 'hero', 'mirror']); await closeLook();

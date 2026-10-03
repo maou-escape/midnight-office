@@ -482,3 +482,71 @@ table.xl td:first-of-type { text-align: left; }
 .xl-tabs span, .xl-tabs button { padding: 3px 14px; background: #f3f3f3; border: 0; font: inherit; color: #333; }
 .xl-tabs .on { background: #fff; color: #217346; border-bottom: 2px solid #217346; }
 @media (max-width: 640px) { .set-row { grid-template-columns: 110px 1fr 34px; } }
+
+/* ---------- v3: 상황 상자 · 인물 카드 ---------- */
+.situation { margin: 14px 0 4px; padding: 12px 14px; border-radius: 10px; background: rgba(245, 177, 76, .08); border: 1px solid rgba(245, 177, 76, .35); font-size: 14px; }
+.situation > b { display: block; color: var(--accent-2); font-size: 12px; margin-bottom: 4px; letter-spacing: .04em; }
+.situation ul { margin: 4px 0 0; padding-left: 18px; } .situation li { margin: 3px 0; }
+.cast { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin: 12px 0; }
+.cast div { padding: 8px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; }
+.cast b { display: block; font-size: 14px; } .cast span { color: var(--muted); }
+
+/* ---------- 업무 모드: 엑셀 화면으로 플레이 ---------- */
+.xlsheet { display: none; }
+body.work #game .topbar, body.work #game .objective, body.work #game .stage-wrap, body.work #game .inventory { display: none; }
+body.work .xlsheet { display: flex; flex: 1; min-height: 0; min-width: 0; width: 100%; overflow: hidden; }
+.xl-app { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; max-width: 100%; background: #fff; color: #1f1f1f; font: 13px 'Malgun Gothic', 'Noto Sans KR', sans-serif; }
+.xl-titlebar { display: flex; justify-content: space-between; background: #217346; color: #fff; padding: 6px 12px; font-size: 13px; }
+.xl-win { letter-spacing: 10px; opacity: .8; }
+.xl-ribbon { background: #f3f3f3; border-bottom: 1px solid #d4d4d4; }
+.xl-menus { display: flex; gap: 16px; padding: 4px 12px 0; overflow-x: auto; white-space: nowrap; }
+.xl-menus b { background: #217346; color: #fff; padding: 2px 10px; font-weight: 400; }
+.xl-menus span:nth-child(2) { border-bottom: 2px solid #217346; color: #217346; }
+.xl-tools { display: flex; gap: 2px; padding: 6px 8px; overflow-x: auto; }
+.xl-tools button { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 56px; padding: 4px 6px; border: 1px solid transparent; border-radius: 3px; background: none; font: inherit; font-size: 15px; color: #1f1f1f; }
+.xl-tools button span { font-size: 11px; color: #333; }
+.xl-tools button:hover { background: #e1e1e1; border-color: #c8c8c8; }
+.xl-formula { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 3px 8px; font-family: Consolas, 'IBM Plex Mono', monospace; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
+.xl-name { width: 110px; flex: none; border-right: 1px solid #d4d4d4; overflow: hidden; text-overflow: ellipsis; }
+.xl-formula i { color: #888; }
+.xl-fx { overflow: hidden; text-overflow: ellipsis; }
+.xl-body { flex: 1; min-height: 0; overflow: auto; position: relative; }
+table.xl-play { border-collapse: collapse; min-width: 100%; table-layout: fixed; }
+table.xl-play th { position: sticky; top: 0; background: #f3f3f3; color: #555; font-weight: 400; border: 1px solid #d4d4d4; padding: 2px 4px; width: 38px; z-index: 1; }
+table.xl-play tr th:first-child { position: sticky; left: 0; }
+table.xl-play tr:first-child th:nth-child(2) { width: 46px; }
+table.xl-play tr:first-child th:nth-child(3) { width: 38%; }
+table.xl-play tr:first-child th:nth-child(4) { width: 90px; }
+table.xl-play td { border: 1px solid #e1e1e1; padding: 3px 8px; height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xl-play .xl-head td { background: #e9f3ec; font-weight: 700; border-color: #c9dfd0; }
+.xl-play .xl-titlerow td:first-of-type { font-size: 15px; }
+.xl-play .xl-row { cursor: pointer; }
+.xl-play .xl-row:hover td { background: #e8f1fb; }
+.xl-play .xl-row:active td { outline: 2px solid #217346; outline-offset: -2px; }
+.xl-play .xl-sel td { background: #fff4ce; }
+.xl-link { color: #0563c1; text-decoration: underline; }
+.xl-st { font-size: 12px; text-align: center; }
+.xl-st.new { color: #c42b1c; font-weight: 700; } .xl-st.seen { color: #6b6b6b; } .xl-st.ok { color: #107c41; font-weight: 700; } .xl-st.lock { color: #b26b00; } .xl-st.sel { color: #b26b00; font-weight: 700; }
+.xl-pic { position: absolute; top: 34px; right: 16px; width: min(46%, 520px); border: 1px solid #9a9a9a; box-shadow: 0 2px 8px rgba(0, 0, 0, .2); background: #fff; }
+.xl-pic svg { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; filter: saturate(.7); }
+.xl-pic-cap { font-size: 11px; color: #555; padding: 2px 6px; background: #f3f3f3; border-bottom: 1px solid #d4d4d4; }
+.xl-app .xl-tabs { position: static; display: flex; gap: 2px; background: #f3f3f3; border-top: 1px solid #d4d4d4; padding: 2px 8px; overflow-x: auto; white-space: nowrap; }
+.xl-app .xl-tabs button { padding: 4px 14px; background: #f3f3f3; border: 0; font: inherit; color: #333; }
+.xl-app .xl-tabs button:hover { background: #e1e1e1; }
+.xl-app .xl-tabs .on { background: #fff; color: #217346; font-weight: 700; border-bottom: 2px solid #217346; }
+.xl-plus { padding: 4px 10px; color: #888; }
+.xl-status { display: flex; justify-content: space-between; background: #217346; color: #fff; padding: 2px 12px; font-size: 12px; }
+/* 업무 모드의 대화상자 */
+body.work .modal { background: rgba(255, 255, 255, .35); backdrop-filter: none; }
+body.work .modal-card { border-radius: 2px; border: 1px solid #8a8a8a; padding-top: 40px; box-shadow: 0 8px 24px rgba(0, 0, 0, .22); }
+body.work .modal-card::before { content: 'Microsoft Excel'; position: absolute; top: 0; left: 0; right: 0; height: 30px; line-height: 30px; padding-left: 12px; background: #f3f3f3; border-bottom: 1px solid #d4d4d4; font-size: 12px; color: #333; }
+body.work .modal-close { top: 0; right: 0; width: 42px; height: 30px; border-radius: 0; border: 0; background: transparent; }
+body.work .modal-close:hover { background: #c42b1c; color: #fff; }
+body.work .modal-body .loc { color: #217346; }
+body.work .situation { background: #fff8e6; border-color: #f0d9a0; }
+body.work .cast div, body.work .choice, body.work .chip, body.work .pcard, body.work .order-row, body.work .tile, body.work .seal-chip { border-radius: 2px; }
+body.work .grid { background: #f2f2f2; }
+@media (max-width: 640px) { .xl-pic { position: static; width: auto; margin: 8px; } table.xl-play tr:first-child th:nth-child(3) { width: 55%; } }
+table.xl-play td { text-align: left; }
+table.xl-play td.xl-st { text-align: center; }
+table.xl-play tr:first-child th:nth-child(2) { width: 52px; }
